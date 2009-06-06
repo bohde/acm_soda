@@ -1,25 +1,70 @@
-# Create your views here.
-import hashlib
 
-#def check_login(request):
+from django.shortcuts import render_to_response
+from django.http import HttpResponseBadRequest, HttpResponseForbidden, HttpResponse
+import django.utils.simplejson as json
+from acm_soda.api.models import Inventory, Client
+from acm_soda.api.utils import check_signature
 
 
-def concat(strs):
-    return ''.join(sorted(['='.join(x) for x in strs]))
+API_METHOD_MAPPING = {}
 
-def dict_concat(d):
-    return concat([(k, v) for k, v in d.items() if k != 'signature'])
+def apimethod(name):
+    '''
+    Decorator for adding views to the mapping of allowed API methods.
+    '''
+    def wrapper(func):
+        API_METHOD_MAPPING[name] = func
+        return func
+    return wrapper
 
-def gen_signature(d, secret):
-    return hashlib.md5(dict_concat(d) + secret).hexdigest()
 
-def check_signature(d, secret):
-    return d['signature'] == gen_signature(d, secret)
+@apimethod('inventory.list')
+def inventory_list(request):
+    output = []
+    for i in Inventory.objects.all():
+        output.append(
+        {
+            'soda': {
+                'short_name': i.soda.short_name,
+                'description': i.soda.description
+            },
+            'quantity': i.amount
+        })
+    return output
 
-def check_client_authentication(request):
-    pass
-    """
-    snag the dict from the request.
-    check the user,
-    lookup the secret key in db.
-    """
+
+def dispatch(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest('Request must use the POST verb')
+    
+    if request.META.get('CONTENT_TYPE', '') != 'application/json':
+        return HttpResponseBadRequest('Request must have the content-type "application/json"')
+    
+    d = json.loads(request.raw_post_data)
+    
+    if not 'method' in d:
+        return HttpResponseBadRequest('Request JSON must include an "method" element.')
+    
+    if not 'signature' in d:
+        return HttpResponseBadRequest('Request JSON must include an "signature" element.')
+    
+    if not 'client_name' in d:
+        return HttpResponseBadRequest('Request JSON must include an "client_name" element.')
+
+    try:
+        client = Client.objects.get(name=d.get('client_name'))
+    except Client.DoesNotExist:
+        return HttpResponseForbidden('Access for that "client_name" is denied.')
+
+    if not check_signature(d, client.auth_key):
+        return HttpResponseForbidden('Access for that "client_name" is denied.')
+    
+    if not d.get('method') in API_METHOD_MAPPING:
+        return HttpResponseBadRequest('No such method: "%s"' % d.get('method'))
+    
+    request.api_client = client
+    
+    output = API_METHOD_MAPPING.get(d.get('method'))(request)
+    
+    return HttpResponse(json.dumps(output), content_type='application/json')
+    

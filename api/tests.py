@@ -5,7 +5,7 @@ Unit tests for API
 import unittest
 import hashlib
 
-import acm_soda.api.views as views
+import acm_soda.api.utils as views
 
 class TestApiFunctions(unittest.TestCase):
     def testConcat(self):

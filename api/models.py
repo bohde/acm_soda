@@ -5,22 +5,25 @@ from django.contrib.auth.models import User as AuthUser
 
 
 class Client(models.Model):
-    authKey = models.CharField(max_length=200)
+    auth_key = models.CharField(max_length=200)
     name = models.CharField(max_length=200, primary_key=True)
 
 class MachineUser(models.Model):
     user = models.ForeignKey(AuthUser, unique=True)
     twitter = models.CharField(max_length=25, blank=True, unique=True)
-    studentId = models.CharField(max_length=10, blank=True, unique=True)
+    student_id = models.CharField(max_length=10, blank=True, unique=True)
 
 class Soda(models.Model):
-    shortName = models.CharField(max_length=10, unique=True, primary_key=True)
+    short_name = models.CharField(max_length=10, unique=True, primary_key=True)
     description = models.CharField(max_length=200)
+    
+    def __unicode__(self):
+        return self.description
 
 class Transaction(models.Model):
-    amount = models.IntegerField() #number of pennies
+    amount = models.IntegerField(help_text='measured in pennies (ie, 500 = $5)')
     user = models.ForeignKey(MachineUser)
-    dateTime = models.DateTimeField(auto_now_add=True)
+    date_time = models.DateTimeField(auto_now_add=True)
 
 class SodaTransaction(models.Model):
     transaction = models.ForeignKey(Transaction)
