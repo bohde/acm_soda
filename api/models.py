@@ -16,7 +16,8 @@ class MachineUser(models.Model):
 class Soda(models.Model):
     short_name = models.CharField(max_length=10, unique=True, primary_key=True)
     description = models.CharField(max_length=200)
-    
+    cost = models.IntegerField(help_text='measured in pennies (ie, 500 = $5)')
+
     def __unicode__(self):
         return self.description
 
