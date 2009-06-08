@@ -6,6 +6,9 @@ from acm_soda.api.models import Inventory, Client
 from acm_soda.api.utils import check_signature
 from functools import wraps
 
+ONE_TIME_USE_KEYS = {}
+
+
 def dispatch_method(f):
     @wraps(f)
     def wrapper(request, *args, **kwargs):
@@ -52,5 +55,6 @@ def inventory_list(request):
             'quantity': i.amount
         })
     return output
+
 
 

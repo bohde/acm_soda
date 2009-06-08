@@ -14,7 +14,7 @@ from django.test.client import Client
 from acm_soda.api.models import Client as SodaClient
 
 
-class TestApiFunctions(unittest.TestCase):
+class TestApiSecurity(unittest.TestCase):
     def testConcat(self):
         """
         concat should take a list of tuples, representing (key,value)s and return a string key1=value1key2=value2...
@@ -57,10 +57,11 @@ def testContentRequiresWrapper(missing, error_ret):
     return wrapper
 
 class TestApiWrappers(TestCase):
+    urls = 'api.test_urls'
     def setUp(self):
         self.secret = 'test'
         self.client_name = 'test'
-        self.url = '/api/inventory'
+        self.url = '/test'
         self.data = {'method':'inventory.list', 'client_name':self.client_name}
         self.data['signature'] = utils.gen_signature(self.data, self.secret)
         SodaClient.objects.create(name=self.client_name, auth_key=self.secret)
@@ -95,4 +96,10 @@ class TestApiWrappers(TestCase):
         self.data['signature'] = ''
         self.assertNotEquals(current_signature, '')
         testContent(self, 'Access for that "client_name" is denied.')
+
+    def goodPathThrough(self):
+        data = json.dumps(self.data)
+        response = self.client.post(self.url,data,content_type="application/json")
+        self.assertEquals(response.status_code, 200)
+        self.assertContains(response.content, 'test')
 
