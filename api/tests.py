@@ -12,10 +12,7 @@ from django.test import TestCase
 from django.test.client import Client
 
 from acm_soda.api.models import Client as SodaClient
-from acm_soda.api.views import API_METHOD_MAPPING
 
-
-URL = '/api/dispatch'
 
 class TestApiFunctions(unittest.TestCase):
     def testConcat(self):
@@ -63,7 +60,7 @@ class TestApiWrappers(TestCase):
     def setUp(self):
         self.secret = 'test'
         self.client_name = 'test'
-        self.url = '/api/dispatch'
+        self.url = '/api/inventory'
         self.data = {'method':'inventory.list', 'client_name':self.client_name}
         self.data['signature'] = utils.gen_signature(self.data, self.secret)
         SodaClient.objects.create(name=self.client_name, auth_key=self.secret)
@@ -87,7 +84,6 @@ class TestApiWrappers(TestCase):
     Checks to make sure that if the request doesn't have one of the parameters, it will just return an error
     """
     testContentRequiresClient = testContentRequiresWrapper('client_name', 'Request JSON must include an "client_name" element.')
-    testContentRequiresMethod = testContentRequiresWrapper('method', 'Request JSON must include an "method" element.')
     testContentRequiresSignature = testContentRequiresWrapper('signature', 'Request JSON must include an "signature" element.')
 
     def checkNonExistentClientFails(self):
@@ -100,7 +96,3 @@ class TestApiWrappers(TestCase):
         self.assertNotEquals(current_signature, '')
         testContent(self, 'Access for that "client_name" is denied.')
 
-    def checkForMethodThatDoesNotExist(self):
-        self.data['method'] = 'foo'
-        self.assertFalse('foo' in API_METHOD_MAPPING)
-        testContent(self, 'No such method: "%s"' % 'foo')
