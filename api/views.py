@@ -41,20 +41,22 @@ def dispatch_method(f):
         return HttpResponse(json.dumps(output), content_type='application/json')
     return wrapper
 
+def requires_throwaway_key(f):
+    @wraps(f)
+    def wrapper(request, *args, **kwargs):
+        d = json.loads(request.raw_post_data)
+        if 'client_name' in d:
+            k = d.get('client_name')
+            if 'key' in d and ONE_TIME_USE_KEYS[k] == d.get('key'):
+                return f(request, *args, **kwargs)
+            return HttpResponseForbidden('Request JSON must include the one time use key for the client.')
+        return HttpResponseForbidden('Request JSON must include an "client_name" element.')
+
 @dispatch_method
-def inventory_list(request):
-    output = []
-    for i in Inventory.objects.all():
-        output.append(
-        {
-            'soda': {
-                'short_name': i.soda.short_name,
-                'description': i.soda.description,
-                'cost': i.soda.cost
-            },
-            'quantity': i.amount
-        })
-    return output
+def inventory_list(request, soda=None):
+    if soda:
+        return Inventory.getInventoryForSoda(soda)
+    return Inventory.getEntireInventory()
 
 
 

@@ -9,7 +9,7 @@ class Client(models.Model):
     name = models.CharField(max_length=200, primary_key=True)
 
 class MachineUser(models.Model):
-    user = models.ForeignKey(AuthUser, unique=True)
+    user = models.ForeignKey(AuthUser, primary_key=True)
     twitter = models.CharField(max_length=25, blank=True, unique=True)
     student_id = models.CharField(max_length=10, blank=True, unique=True)
 
@@ -27,13 +27,36 @@ class Transaction(models.Model):
     date_time = models.DateTimeField(auto_now_add=True)
 
 class SodaTransaction(models.Model):
-    transaction = models.ForeignKey(Transaction)
+    transaction = models.ForeignKey(Transaction, primary_key=True)
     soda = models.ForeignKey(Soda)
 
 class Inventory(models.Model):
-    soda = models.ForeignKey(Soda)
+    soda = models.ForeignKey(Soda, primary_key=True)
     slot = models.PositiveSmallIntegerField()
     amount = models.PositiveSmallIntegerField()
+
+    @staticmethod
+    def returnQs(qs):
+        output = []
+        for i in qs:
+            output.append(
+            {
+                'soda': {
+                    'short_name': i.soda.short_name,
+                    'description': i.soda.description,
+                    'cost': i.soda.cost
+                },
+                'quantity': i.amount
+            })
+        return output
+
+    @staticmethod
+    def getEntireInventory():
+        return Inventory.returnQs(Inventory.objects.select_related(depth=1).all())
+
+    @staticmethod
+    def getInventoryForSoda(soda):
+        return Inventory.returnQs(Inventory.objects.select_related(depth=1).filter(pk=soda).all())
 
 
 adminable = (Inventory, MachineUser, Soda, Transaction, SodaTransaction, Client)

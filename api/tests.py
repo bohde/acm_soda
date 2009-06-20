@@ -6,12 +6,14 @@ import unittest
 import hashlib
 
 import acm_soda.api.utils as utils
+import acm_soda.api.views as views
 import django.utils.simplejson as json
 
 from django.test import TestCase
 from django.test.client import Client
 
 from acm_soda.api.models import Client as SodaClient
+from acm_soda.api.models import Inventory as Inventory
 
 
 class TestApiSecurity(unittest.TestCase):
@@ -103,3 +105,52 @@ class TestApiWrappers(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertContains(response.content, 'test')
 
+
+class TestModels(TestCase):
+    fixtures = ['test_fixture.json']
+
+    def testInventoryModel(self):
+        response = Inventory.getEntireInventory()
+        self.assertEquals(len(response), 2)
+        for r in response:
+            for x in ['soda', 'quantity']:
+                self.assertTrue(r.has_key(x))
+
+    def testInventoryModelForSoda(self):
+        response = Inventory.getInventoryForSoda("coke")
+        self.assertEquals(len(response), 1)
+        for r in response:
+            for x in ['soda', 'quantity']:
+                self.assertTrue(r.has_key(x))
+
+class TestApiViews(TestCase):
+    fixtures = ['test_fixture.json']
+    urls = 'api.test_urls'
+
+    def setUp(self):
+        self.secret = 'twitter'
+        self.client_name = 'twitter'
+        self.url = '/inventory'
+        self.data = {'client_name':self.client_name}
+        self.data['signature'] = utils.gen_signature(self.data, self.secret)
+
+    def testInventoryUrl(self):
+        data = json.dumps(self.data)
+        response = self.client.post(self.url,data,content_type="application/json")
+        self.assertEquals(response.status_code, 200)
+        j = json.loads(response.content)
+        self.assertEquals(len(j), 2)
+        for r in j:
+            for x in ['soda', 'quantity']:
+                self.assertTrue(r.has_key(x))
+
+    def testInventoryUrlForSpecificSodas(self):
+        data = json.dumps(self.data)
+        for soda in ["mtn", "coke"]:
+            response = self.client.post(self.url + "/" + soda ,data,content_type="application/json")
+            self.assertEquals(response.status_code, 200)
+            j = json.loads(response.content)
+            self.assertEquals(len(j), 1)
+            for r in j:
+                for x in ['soda', 'quantity']:
+                    self.assertTrue(r.has_key(x))
