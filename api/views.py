@@ -58,5 +58,6 @@ def inventory_list(request, soda=None):
         return Inventory.getInventoryForSoda(soda)
     return Inventory.getEntireInventory()
 
-
-
+@dispatch_method
+def slot_inventory(request, slot):
+    return Inventory.getInventoryForSlot(slot)

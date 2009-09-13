@@ -38,11 +38,11 @@ class TestApiSecurity(unittest.TestCase):
     def testGenSignature(self):
         d = {'1':'2', '3':'4'}
         s = "secret"
-        self.assertEquals(utils.gen_signature(d, s), hashlib.md5('1=23=4' + s).hexdigest())
+        self.assertEquals(utils.gen_signature(d, s), hashlib.sha256('1=23=4' + s).hexdigest())
 
     def testCheckSignature(self):
         s = "secret"
-        d = {'1':'2', '3':'4', 'signature':hashlib.md5('1=23=4' + s).hexdigest()}
+        d = {'1':'2', '3':'4', 'signature':hashlib.sha256('1=23=4' + s).hexdigest()}
         self.assertTrue(utils.check_signature(d, s))
 
 
@@ -130,9 +130,16 @@ class TestApiViews(TestCase):
     def setUp(self):
         self.secret = 'twitter'
         self.client_name = 'twitter'
-        self.url = '/inventory'
         self.data = {'client_name':self.client_name}
         self.data['signature'] = utils.gen_signature(self.data, self.secret)
+
+    def buying(self):
+        self.user = ''
+
+class TestInventoryViews(TestApiViews):
+    def setUp(self):
+        TestApiViews.setUp(self)
+        self.url = '/inventory'
 
     def testInventoryUrl(self):
         data = json.dumps(self.data)
@@ -154,3 +161,23 @@ class TestApiViews(TestCase):
             for r in j:
                 for x in ['soda', 'quantity']:
                     self.assertTrue(r.has_key(x))
+
+class TestSlotViews(TestApiViews):
+    def setUp(self):
+        TestApiViews.setUp(self)
+        self.url = '/slot'
+
+    def testSlot(self):
+        data = json.dumps(self.data)
+        for slot in [1,2]:
+            response = self.client.post(self.url + "/" + str(slot), data, content_type="application/json")
+            self.assertEquals(response.status_code, 200)
+            j = json.loads(response.content)
+            self.assertEquals(len(j), 1)
+            for r in j:
+                for x in ['soda', 'quantity']:
+                    self.assertTrue(r.has_key(x))
+
+    # def testSlotBuy(self):
+    #     data = json.dumps(self.data)
+    #     for slot, res in [1,200

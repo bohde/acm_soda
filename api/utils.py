@@ -1,3 +1,4 @@
+
 import hashlib
 import random as rand
 
@@ -8,7 +9,7 @@ def dict_concat(d):
     return concat([(k, v) for k, v in d.items() if k != 'signature'])
 
 def gen_signature(d, secret):
-    return hashlib.md5(dict_concat(d) + secret).hexdigest()
+    return hashlib.sha256(dict_concat(d) + secret).hexdigest()
 
 def check_signature(d, secret):
     return d['signature'] == gen_signature(d, secret)
